@@ -1,0 +1,39 @@
+name: Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Log in to Amazon ECR
+      env:
+        AWS_REGION: us-east-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin 337909777953.dkr.ecr.us-east-1.amazonaws.com
+
+    - name: Build Docker image
+      run: docker build -t nasacrown .
+
+    - name: Tag Docker image
+      run: docker tag nasacrown:latest 337909777953.dkr.ecr.us-east-1.amazonaws.com/nasacrown:latest
+
+    - name: Push Docker image to Amazon ECR
+      run: docker push 337909777953.dkr.ecr.us-east-1.amazonaws.com/nasacrown:latest
+
+    - name: Deploy to Amazon ECS
+      env:
+        AWS_REGION: us-east-1
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        aws ecs update-service --cluster cbit --service nasacrown --force-new-deployment
