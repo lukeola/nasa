@@ -36,4 +36,9 @@ jobs:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       run: |
+        TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition website | jq '.taskDefinition')
+        NEW_TASK_DEFINITION=$(echo $TASK_DEFINITION | jq ' .containerDefinitions[0].environment |= . + [{"name": "MY_ENV_VARIABLE", "value": "new-value"}]')
+        echo $NEW_TASK_DEFINITION > new-task-def.json
+        aws ecs register-task-definition --cli-input-json file://new-task-def.json
         aws ecs update-service --cluster cbit --service nasacrown --force-new-deployment
+
